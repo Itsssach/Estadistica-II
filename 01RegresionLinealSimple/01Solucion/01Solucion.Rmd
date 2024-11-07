@@ -1,0 +1,512 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Taller Práctico Regresión Lineal Simple (1)"
+thanks: "El material asociado a este taller puede encontrarse en el repositorio del curso, **(https://github.com/Itsssach/Estadistica-II)**"
+author:
+- name: Estadística II
+  affiliation: Universidad Nacional de Colombia, Sede Medellín
+abstract: "Este documento corresponde al primer taller práctico del curso de **Estadística II** para la *Universidad Nacional de Colombia*, Sede Medellín, en el periodo 2024 - 2. Se brinda una introducción al análisis de regresión. El enfoque de este taller está sobre las componentes asociadas al modelo de regresión lineal simple -especialmente los parámetros-. **Monitor:** *Santiago Carmona Hincapié.*"
+keywords: "regresión, parámetros"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+#fontfamily: mathpazo
+fontsize: 12pt
+# spacing: double
+endnote: no
+language: "es"
+---
+
+```{r setup, include=FALSE}
+# -----------------------------
+if (!dir.exists("figs")) dir.create("figs")
+if (!dir.exists("_cache")) dir.create("_cache")
+# -----------------------------
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      }, 
+                      fig.align="center")
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Libraries
+# -----------------------------
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
+               "exams","leaps","MASS","rsm","car","magrittr","readxl", 
+               "kableExtra", "GGthemes")
+# Para cargar librerías puede usarse la instrucción anterior, donde se
+# especifica la función p_load() de la librería pacman, o bien, de
+# la forma tradicional:
+# library("tidyverse")
+# library("knitr"), etc.
+# Para este problema sólo se emplea "tidyverse" y "GGthemes" para
+# personalizar con la función theme_gdocs() en las gráficas
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Read data
+# -----------------------------
+data <- read.csv("data/FreedomIndex.csv") |> 
+  tidyr::drop_na() |> 
+  dplyr::select(3:15) |> 
+  dplyr::rename(OS = Overall.Score, PR = Property.Rights, 
+                GI = Government.Integrity, JE = Judicial.Effectiveness, 
+                TB = Tax.Burden, GS = Government.Spending, 
+                FH = Fiscal.Health, BF = Business.Freedom, 
+                LF = Labor.Freedom, MF = Monetary.Freedom, 
+                TF = Trade.Freedom, IF = Investment.Freedom, 
+                FF = Financial.Freedom)
+# -----------------------------
+old_names <- data.frame(old = c("Overall.Score", "Property.Rights", "Government.Integrity", "Judicial.Effectiveness", "Tax.Burden", "Government.Spending", "Fiscal.Health", "Business.Freedom", "Labor.Freedom", "Monetary.Freedom", "Trade.Freedom", "Investment.Freedom", "Financial.Freedom"), new = c("OS", "PR", "GI", "JE", "TB", "GS", "FH", "BF", "LF", "MF", "TF", "IF", "FF"))
+
+```
+
+# Información general
+
+Con el propósito de profundizar en los conceptos del modelo de regresión lineal simple vistos en clase, se propone afrontar dos problemas prácticos. El segundo consta de una simulación que ahonda en las propiedades de los parámetros del modelo de regresión. El primero, es una aproximación al uso del modelo en situaciones de la vida real.
+
+**La solución para cada uno de los problemas se efectúa a partir del software estadístico R.**
+
+## Ejercicio con datos reales
+
+El índice de libertad económica es una medida que *evalúa el grado de libertad económica* en diferentes países. Se presentan diversos atributos, cuya descripción puede encontrarse **en el siguiente enlace:** https://www.kaggle.com/datasets/mlippo/freedom-economic-index/data
+
+```{r, echo=FALSE}
+table <- head(data, 5)
+table |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Información en análisis", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= TRUE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Considere a *'Overall Score'* como la variable respuesta. *Escoja una covariable y de respuesta a los siguientes planteamientos:*
+
+```{=tex}
+\begin{enumerate}
+\item Realice un \textbf{breve análisis descriptivo}. ¿Un modelo de regresión lineal simple podría ser adecuado en este caso? ¿Por qué?
+\item Escriba la ecuación del modelo de regresión lineal, considerando los supuestos asociados. Obtenga los valores calculados de los parámetros, $\overline{y}, \hat{y}, \hat{\varepsilon_{i}}$ y analícelos.
+\item Determine si los parámetros del modelo $\beta_{0}, \beta_{1}$ son significativos, considerando $\alpha = 0.05$. Realice una interpretación en relación al problema. \textbf{¿Estos parámetros tienen sentido?}
+\item Calcule un intervalo de confianza -considerando $\alpha = 0.05$- para ambos parámetros. ¿Puede concluir a partir de este resultado si los parámetros son significativos?
+\end{enumerate}
+```
+
+## Ejercicio de simulación
+
+A partir de una simulación se pretende ilustrar algunos de los principios teóricos que comprenden el análisis de regresión lineal simple. Así, se plantea un modelo $Y_{i} = \beta_{0} + \beta_{1}X_{1i} + \varepsilon_{i}, \varepsilon_{i} \overset{\text{iid}}{\sim} N(0, \sigma^{2})$, tal que $\beta_{0} = 50, \beta_{1} = 10, \sigma^{2} = 16$. Suponga que se emplean $n = 20$ observaciones para ajustar el modelo. **Genere** $\mathbf{500}$ **muestras de** $\mathbf{20}$ **observaciones de tal manera que** $x = 1, 1.5, 2, ..., 10$ **para cada muestra.**
+
+```{=tex}
+\begin{enumerate}
+\item Para cada muestra calcule $\hat{\beta_{0}}, \hat{\beta_{1}}$. Construya un histograma para cada parámetro estimado y concluya.
+\item Para cada muestra, calcule un intervalo de confianza al $90\%$ para $\beta_{1}$. \textit{¿Cuántos de estos intervalos contienen al verdadero valor del parámetro? ¿Se corresponde la teoría con la práctica?}  
+\end{enumerate}
+```
+
+```{=html}
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->
+```
+
+\newpage
+
+# Solución
+
+Se brinda la solución para los problemas planteados. Se brinda el código requerido para la generación de las gráficas (sin las opciones de personalización). **Solo se muestra el código esencial (para código completo ver el archivo 01Solucion.Rmd).** Sólo se brindan los análisis para la simulación. **Los análisis restantes son labor del estudiante.**
+
+## Parte práctica
+
+### Primer punto
+
+Realice un **breve análisis descriptivo**. ¿Un modelo de regresión lineal simple podría ser adecuado en este caso? ¿Por qué?
+
+```{r}
+# -----------------------------
+#     Análisis descriptivo
+# -----------------------------
+cor_matriz <- cor(data) |> 
+  reshape2::melt() # Formato largo
+
+# -----------------------------
+correlation_plot <- ggplot(cor_matriz, aes(Var1, Var2, fill= value)) + 
+  geom_tile(color= "blue") + 
+  scale_fill_gradient2(low= "blue", high= "red", 
+                       midpoint= 0, limit= c(-1, 1), space= "Lab", 
+                       name= "Correlacion") +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
+  # coord_fixed() + 
+  labs(title= "Matriz de correlaciones", x= "", 
+       y= "", subtitle= "En relacion al problema")
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Personalización (opcional)
+# --------------------------
+# GGthemes::theme_gdocs()
+correlation_plot <- correlation_plot  + theme_gdocs() +
+  theme(plot.title= element_text(color= "black", size= 15, face= "bold"),
+  axis.title.x= element_text(color= "black", size= 12, face= "bold"),
+  axis.title.y= element_text(color= "black", size= 12, face= "bold"),
+  plot.subtitle= element_text(color= "gray", size= 12, face= "bold.italic"),
+  axis.text.x= element_text(size= 8, angle= 90, hjust= 1), 
+  axis.text.y= element_text(size= 8)) +
+  scale_color_brewer(palette= "Dark2") + guides(size= none, alpha= none)
+# --------------------------
+correlation_plot # Imprimir resultado
+```
+
+```{r}
+# -----------------------------
+#    Gráfico de correlación
+# -----------------------------
+highly_correlated <- data |> 
+  dplyr::select(-TB, -GS, -FH, -MF)
+GGally::ggpairs(highly_correlated, title = "Gráfico de correlación")
+```
+
+```{r}
+# -----------------------------
+#    Gráfico de densidad (OS)
+# -----------------------------
+density_plot <- ggplot(data, aes(OS)) + 
+  geom_histogram(aes(y= after_stat(density)), fill= "lightgray",
+                 color= "black", position= "identity") +
+  geom_density(color= "red", lwd= 1, fill= "red", alpha= 0.5) +
+  labs(title= "Histograma de densidad", x= "Observaciones", 
+       y= "Densidad", subtitle= "En relación a Overall Score" )
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Personalización (opcional)
+# --------------------------
+# GGthemes::theme_gdocs()
+density_plot <- density_plot + theme_gdocs() +
+  theme(plot.title= element_text(color= "black", size= 15, face= "bold"),
+  axis.title.x= element_text(color= "black", size= 12, face= "bold"),
+  axis.title.y= element_text(color= "black", size= 12, face= "bold"),
+  plot.subtitle= element_text(color= "gray", size= 12, face= "bold.italic"),
+  axis.text.x= element_text(size= 8), 
+  axis.text.y= element_text(size= 8)) +
+  scale_color_brewer(palette= "Dark2") + guides(size= none, alpha= none)
+# --------------------------
+density_plot # Imprimir resultado
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#         Density plot
+# -----------------------------
+# plot(density(data$OS), main = expression(paste("Gráfico de ", y)))
+```
+
+### Segundo punto
+
+```{r}
+# -----------------------------
+#      Modelo de regresión
+# -----------------------------
+model <- stats::lm(OS ~ GI, data = data)
+# Ajustando el modelo de regresión
+# Encontrar la información
+beta_0 <- coef(model)[1] # Beta_0
+# Same as model$coefficients[1]
+beta_1 <- coef(model)[2] # Beta_1
+y_bar <- mean(data$OS) # Mean Y
+y_hat <- fitted(model) # Ajustados
+residuals <- model$residuals
+sigma_2 <- sigma(model)^2 # Sigma^2
+# -----------------------------
+# Hallando los valores a mano
+x <- data$GI; y <- data$OS; n <- length(data$OS)
+x_bar <- mean(x); y_bar <- mean(y)
+Sxx <- sum((x- x_bar)^2); Sxy <- sum((x- x_bar)*y)
+beta_1 <- Sxy/Sxx # Beta_0
+beta_0 <- y_bar - (beta_1 * x_bar) # Beta_1
+residuals <- y - y_hat # Residuales
+sigma_2 <- sum(residuals^2)/(n -2)
+# -----------------------------
+```
+
+```{r}
+# --------------------------
+#    Gráfico de regresión
+# --------------------------
+regression <- ggplot(data, aes(x = GI, y = OS)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE,color = "red") + 
+  labs(title = "Gráfico de Regresión", x = "GI", y = "OS", 
+       subtitle= "En relación al problema" )
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Personalización (opcional)
+# --------------------------
+# GGthemes::theme_gdocs()
+regression <- regression + theme_gdocs() + 
+  theme(plot.title= element_text(color= "black", size= 15, face= "bold"),
+  axis.title.x= element_text(color= "black", size= 12, face= "bold"),
+  axis.title.y= element_text(color= "black", size= 12, face= "bold"),
+  plot.subtitle= element_text(color= "gray", size= 12, face= "bold.italic"),
+  axis.text.x= element_text(size= 8), 
+  axis.text.y= element_text(size= 8)) +
+  scale_color_brewer(palette= "Dark2") + guides(size= none, alpha= none)
+# --------------------------
+regression # Imprimir resultado
+```
+
+### Tercer punto
+
+```{r}
+# --------------------------
+#         Parámetros
+# --------------------------
+model_summary <- summary(model)
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#            Tabla
+# --------------------------
+# Generar tabla con kable
+model_summary$coefficients |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Significancia parámetros (Prueba t)", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= TRUE, latex_options= 
+                              "HOLD_position", font_size= 10)
+```
+
+### Cuarto punto
+
+```{r}
+# --------------------------
+#   Intervalo de confianza
+# --------------------------
+confint_beta0 <- confint(model, "(Intercept)", level = 0.95)
+confint_beta1 <- confint(model, "GI", level = 0.95)
+# --------------------------
+alpha <- 0.05 # Nivel de significancia
+beta0_lower <- beta_0 - qt(1 - alpha/2, n- 2)*sqrt(sigma_2*sum(x^2)/(n*Sxx))
+beta0_upper <- beta_0 + qt(1 - alpha/2, n-2)*sqrt(sigma_2*sum(x^2)/(n*Sxx))
+# --------------------------
+beta1_lower <- beta_1 - qt(1- alpha/2, n-2)*sqrt(sigma_2/Sxx)
+beta1_upper <- beta_1 + qt(1- alpha/2, n-2)*sqrt(sigma_2/Sxx)
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#          Tabla
+# --------------------------
+intervals <- data.frame(
+  Inferior = c(beta0_lower, beta1_lower),
+  Superior = c(beta0_upper, beta1_upper),
+  Parametro = c("beta[0]", "beta[1]"))
+intervals |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Significancia parámetros (Prueba t)", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= TRUE, latex_options= 
+                              "HOLD_position", font_size= 10)
+```
+
+## Simulación
+
+### Primer punto
+
+Para cada muestra calcule $\hat{\beta_{0}}, \hat{\beta_{1}}$. Construya un histograma para cada parámetro estimado y concluya.
+
+```{r, echo=FALSE}
+# --------------------------
+#     Generación datos 
+# --------------------------
+x <- seq(1, 10, by= 0.5) # Generación datos
+sigma2 <- 16 # Indicado en el modelo
+nsim <- 500 # Número de simulaciones
+X <- matrix(rep(x, times= nsim), byrow= TRUE, nrow= nsim) # Generación matriz
+# --------------------------
+#  Simulación y modelación 
+# --------------------------
+# Función para la estimación del modelo
+simulacion <- function(x){
+  n <- length(x) # Longitud del vector
+  y <- 50+ 10*x+ rnorm(n, mean= 0, sd= 4) # Modelo lineal
+  modelo <- lm(y ~ x) # Ajuste del modelo
+  return(modelo) # Retorno de la función
+} # Finalización función
+# Función para el cálculo del (MSE)
+MSE <- function(residual){
+  mse <- sum(residual^2)/(length(residual)- 2) # Definición MSE
+  return(mse) # Valor de retorno
+} # Finalización función
+# Función para el cálculo del SSE
+SSE <- function(residual){
+  sse <- sum(residual^2) # Definición SSE
+  return(sse) # Valor de retorno
+} # Finalización función
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Simulación y modelación 
+# --------------------------
+# Obtención de 500 regresiones
+auxiliar <- apply(X, 1, simulacion) # Aplicación simulación
+# Obtención parámetros estimados de las rectas ajustadas
+betas <- sapply(auxiliar, coef) # Obteniendo coeficientes
+betas_0 <- betas[1, ] # Extracción
+betas_1 <- betas[2, ] # Extracción 
+# Obtención respuestas estimadas en cada muestra simulada
+y_hats <- sapply(auxiliar, fitted) # Valores ajustados
+# Obtención residuos en cada muestra simulada 
+residual <- sapply(auxiliar, residuals) # Extracción
+# Obtención del MSE y SSE en cada muestra simulada
+mses <- apply(residual, 2, MSE) 
+sses <- apply(residual, 2, SSE)
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Simulación y modelación 
+# --------------------------
+# Obtención de sumas de cuadrados corregidos en X
+Sxx <- function(x){
+  n <- length(x) # Longitud
+  x_bar <- mean(x) # Media
+  sxx <- sum((x- x_bar)^2) # Suma de cuadrados
+  return(sxx) # Valor de retorno
+} # Finalización función
+# Obtención Sxx para cada muestra simulada
+sxx_values <- apply(X, 1, Sxx) # Generación
+# Véase que la suma de cuadrados corregidos es la misma siempre
+sxx <- sxx_values[[1]] # Valor específico
+desviacion <- sqrt(mses/sxx) # Desviación
+```
+
+```{r, echo=FALSE}
+# --------------------------
+#  Intervalos de confianza 
+# --------------------------
+# Valor crítico con alpha= 0.1 y 17 grados de libertad
+valor_critico_t <- qt(0.95, df= 17) # Cálculo
+radio <- valor_critico_t*desviacion # Precisión intervalo
+results <- matrix(NA, nrow= 500, ncol= 2) # Matriz vacía para el almacenamiento
+# Generación de los intervalos de confianza
+for (i in 1:500){ 
+  lower_ci <- betas_1[i]- radio[i] # Inferior
+  upper_ci <- betas_1[i]+ radio[i] # Superior
+  results[i, ] <- c(lower_ci, upper_ci) # Asignación
+} # Término del ciclo
+# Contar cuántos intervalos incluyen el valor 10
+inside_interval <- sum(10 >= results[, 1] & 10 <= results[, 2])
+```
+
+Al llevar a cabo las simulaciones requeridas en esta sección, se tiene que para el modelo de regresión lineal simple planteado como $Y_i= 50+ 10X_i + \varepsilon_i, \varepsilon_i \sim N(0, 16)$, se definió diferentes muestras -en específico, $500$ muestras- a las que se les calculó los parámetros estimados $\hat{\beta_0}$ y $\hat{\beta_1}$. Se muestra a continuación algunos de los parámetros calculados:
+
+```{r, echo=FALSE}
+# --------------------------
+#       Tabla de datos
+# --------------------------
+betas <- t(betas) # Transpuesta
+betas_table <- rbind(head(betas, 5), c(rep(".", 2)), c(rep(".", 2)), c(rep(".", 2)), tail(betas, 5)) # Tabla información
+# Aplicar formato a la tabla
+betas_table |> # Tabla de datos
+  knitr::kable(booktabs= TRUE, caption= "Valores estimados simulados",
+               align= 'c') |>  
+kableExtra::kable_styling(full_width = TRUE, 
+                          latex_options = "HOLD_position", 
+                          font_size = 10) |> 
+  kableExtra::column_spec(1, bold = TRUE)
+```
+
+Para la información anterior, se muestra a continuación, los histogramas correspondientes. Se muestra en primer lugar el histograma para $\hat{\beta_0}$, luego, se mostrará el correspondiente histograma para $\hat{\beta_1}$:
+
+```{r, echo=FALSE}
+# --------------------------
+#    Creación histogramas 
+# --------------------------
+ggplot(as.data.frame(betas_0), aes(betas_0)) + 
+  geom_histogram(aes(y= after_stat(density)), fill= "lightgray",
+                 color= "black", binwidth= 0.8) +
+  geom_density(color= "red", lwd= 1, fill= "red", alpha= 0.5) +
+  labs(title= expression(paste("Histograma de densidad ", hat(beta[0]))), 
+       x= expression(paste("Valor estimaciones ", hat(beta[0]))), 
+       y= "Densidad", subtitle= "En relación a las simulaciones" ) + theme_gdocs() + 
+  theme(plot.title= element_text(color= "black", size= 15, face= "bold"),
+  axis.title.x= element_text(color= "black", size= 12, face= "bold"),
+  axis.title.y= element_text(color= "black", size= 12, face= "bold"),
+  plot.subtitle= element_text(color= "gray", size= 12, face= "bold.italic"),
+  axis.text.x= element_text(size= 8), 
+  axis.text.y= element_text(size= 8)) +
+  scale_color_brewer(palette= "Dark2") + guides(size= none, alpha= none)
+```
+
+Obsérvese que este histograma sigue una curva simétrica, asemejándose a una distribución normal. De hecho, su media está dada por $\overline{\beta_0}=$ `r mean(betas_0)`, mientras que su mediana está dada por `r median(betas_0)` -al menos el $50\%$ de los estimadores son menores o iguales al valor de la mediana especificado-, lo que indica que existe una diferencia de `r abs(median(betas_0)- mean(betas_0))`, que es una diferencia mínima, indicando la gran simetría de la distribución en cuestión. De hecho, tomando en consideración $\overline{\beta_0}=$ `r mean(betas_0)`, puede verse que los estimadores simulados, en promedio, se acercan en gran medida al valor real del parámetro $\beta_0= 50$. 
+
+Se muestra a continuación el respectivo histograma para las simulaciones de los parámetros estimados $\hat{\beta_1}$: 
+
+```{r, echo=FALSE}
+# --------------------------
+#    Creación histogramas 
+# --------------------------
+ggplot(as.data.frame(betas_1), aes(betas_1)) + 
+  geom_histogram(aes(y= after_stat(density)), fill= "lightgray",
+                 color= "black", binwidth= 0.1) +
+  geom_density(color= "red", lwd= 1, fill= "red", alpha= 0.5) +
+  labs(title= expression(paste("Histograma densidad ", hat(beta[1]))), 
+       x= expression(paste("Valor estimaciones ", hat(beta[1]))), 
+       y= "Densidad", subtitle= "En relación a las simulaciones" ) +
+  # Personalización (opcional)
+  theme_gdocs() + 
+  theme(plot.title= element_text(color= "black", size= 15, face= "bold"),
+  axis.title.x= element_text(color= "black", size= 12, face= "bold"),
+  axis.title.y= element_text(color= "black", size= 12, face= "bold"),
+  plot.subtitle= element_text(color= "gray", size= 12, face= "bold.italic"),
+  axis.text.x= element_text(size= 8), 
+  axis.text.y= element_text(size= 8)) +
+  scale_color_brewer(palette= "Dark2") + guides(size= none, alpha= none)
+```
+
+Obsérvese que este histograma sigue una curva simétrica, asemejándose a una distribución normal. De hecho, su media está dada por $\overline{\beta_1}=$ `r mean(betas_1)`, mientras que su mediana está dada por `r median(betas_1)` -al menos el $50\%$ de los estimadores son menores o iguales al valor de la mediana especificado-, lo que indica que existe una diferencia de `r abs(median(betas_1)- mean(betas_1))`, que es una diferencia mínima, indicando la gran simetría de la distribución en cuestión. De hecho, tomando en consideración $\overline{\beta_1}=$ `r mean(betas_1)`, puede verse que los estimadores simulados, en promedio, se acercan en gran medida al valor real del parámetro $\beta_1= 10$.
+
+En general, se podría generar un correcto ajuste al modelo de regresión planteado $Y_i= 50+ 10X_i + \varepsilon_i, \varepsilon_i \sim N(0, 16)$.
+
+### Segundo punto
+
+Para cada muestra, calcule un intervalo de confianza al $90\%$ para $\beta_{1}$. *¿Cuántos de estos intervalos contienen al verdadero valor del parámetro? ¿Se corresponde la teoría con la práctica?*
+
+En esta sección, para cada muestra, se pretende calcular un intervalo de confianza al $90\%$ para $\beta_1$, de manera que sea posible determinar el número de intervalos de confianza acertados para cada una de las simulaciones. Es así que, se muestran los resultados obtenidos en la tabla a continuación:
+
+```{r, echo=FALSE}
+# --------------------------
+#       Tabla de datos
+# --------------------------
+colnames(results) <- c("Límite inferior", "Límite superior") # Nombres
+results_table <- rbind(head(results, 5), c(rep(".", 2)), c(rep(".", 2)), c(rep(".", 2)), tail(results, 5)) # Tabla información
+results_table |> # Tabla de datos
+  knitr::kable(booktabs= TRUE, caption= "Intervalos de confianza",
+               align= 'c') |>  
+kableExtra::kable_styling(full_width = FALSE, latex_options = "HOLD_position", font_size = 10) # Personalización
+```
+
+De los cuales, fue posible determinar que exactamente `r inside_interval` intervalos contienen el verdadero valor del parámetro $\beta_1= 10$, que equivale a `r inside_interval/500`, como era de esperarse, dado el nivel de significancia especificado inicialmente de un $90\%$. **Esto permite reflejar la manera en que se acerca la teoría a la práctica.**
