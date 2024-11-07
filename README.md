@@ -14,3 +14,9 @@ El taller del lunes es el mismo que el taller del miércoles, es así que pueden
 **(3). Medios de comunicación:** El único medio de comunicación por el que estoy autorizado por las directivas para resolver alguna inquietud es este mismo medio (scarmonah@unal.edu.co). (No habrá entonces grupo de WhatsApp oficial del curso). 
 
 **(4). Grabaciones:** Estarán hospedadas en Google- Drive. 
+
+**Instrucciones de uso del repositorio:** Cada carpeta principal (Ej: *01RegresionLinealSimple*) contiene otras dos carpetas (Taller y Solución). En particular, la carpeta de solución que es la que más interesa, contiene la siguiente información:
+- Solucion.R **(Código usado en el taller sin personalizaciones gráficas)**
+- Solucion.Rmd **(Código usado en el taller con personalizaciones gráficas, tablas y contenido para crear un PDF)**
+- Solucion.pdf **(Archivo PDF con el código base usado en la sesión y sus gráficas)**
+- data **(Carpeta que contiene la base de datos usada)**
