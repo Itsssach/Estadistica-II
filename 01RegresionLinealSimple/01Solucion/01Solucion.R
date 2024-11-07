@@ -87,11 +87,18 @@ sigma_2 <- sum(residuals^2)/(n -2)
 # --------------------------
 #    Gráfico de regresión
 # --------------------------
+# Con sistema base
+plot(x, y, main = "Gráfico de regresión", xlab = "GI",
+     ylab = "OS", pch = 19)
+abline(model, col = "red")
+
+# Con GGplot
 regression <- ggplot(data, aes(x = GI, y = OS)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE,color = "red") + 
   labs(title = "Gráfico de Regresión", x = "GI", y = "OS", 
        subtitle= "En relación al problema")
+regression
 
 # TERCER PUNTO
 # --------------------------
