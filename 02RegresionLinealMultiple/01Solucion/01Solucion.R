@@ -14,6 +14,7 @@ Y <- as.matrix(datos[, 1])
 #          SEGUNDO PUNTO
 # -----------------------------
 betas <- solve((t(X) %*% X)) %*% t(X) %*% Y
+
 # Según la definición (X'X)^{-1} X'Y
 
 # -----------------------------
