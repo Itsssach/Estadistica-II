@@ -68,11 +68,6 @@ Con el propósito de profundizar en los conceptos del modelo de regresión linea
 De respuesta a las preguntas formuladas a continuación en base a la teoría tratada en clase. **Provea una interpretación de ser necesario**.
 
 \begin{enumerate}
-  \item Considere el siguiente modelo de regresión lineal múltiple con $k$ variables regresoras, $p = (k+1)$ parámetros asociados $Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2} + ... + \beta_{k}X_{ik} + \varepsilon_{i}, \varepsilon_{i} \overset{iid}{\sim} N(0, \sigma^{2})$. 
-  \begin{itemize}
-    \item (a) Escriba el modelo de forma matricial junto con sus supuestos. \textbf{Especifique las dimensiones de cada componente}.
-    \item (b) Demuestre que el estimador $\bm{\hat{\beta}}$ que se obtiene a través del método de mínimos cuadrados es un estimador insesgado para $\bm{\beta}$. Analice $\bm{\hat{\beta}}$.  
-  \end{itemize}
   \item Determine el valor de verdad de las siguientes afirmaciones.
   \begin{itemize}
     \item (a) Una suma de cuadrados extra mide la reducción marginal en el $\text{SSE}$ cuando una o varias variables predictoras son agregadas al modelo de regresión, dado que las otras predictoras ya fueron agregadas o están en el modelo.
@@ -80,13 +75,14 @@ De respuesta a las preguntas formuladas a continuación en base a la teoría tra
     \begin{center}
     $\text{T}_{0} = \displaystyle \frac{\hat{\beta_{j}}-0}{\sqrt{\sigma^{2}c_{jj}}} \sim t_{n-p}$
     \end{center}
-    Con una región de rechazo asociada de $\text{R}_{c}= \{|\text{T}_{0}| > t_{\alpha/2, np} \}$ y $p$- valor $P(|t_{n-p}| > |T_{0}|)$.
+    Con una región de rechazo asociada de $\text{R}_{c}= \{|\text{T}_{0}| > t_{\alpha/2, n-p} \}$ y $p$- valor $P(|t_{n-p}| > |T_{0}|)$.
     \item (c) Valores grandes de $R^{2}$ implican que la superficie ajustada de respuesta es útil; sin embargo, es menos preferido que $R^{2}_{adj}$ como medida de bondad de ajuste.
     \item (d) El estadístico $\text{F}$ correspondiente al procedimiento de prueba empleado para probar la significancia global del modelo de regresión lineal múltiple es:
     \begin{center}
     $\text{F}_{0}= \displaystyle \frac{\text{SSR}/(k)}{\text{SSE}/n-k} \sim f_{k, n- k}$
     \end{center}
     Con una región de rechazo asociada de $\text{R}_{c}= \{\text{F}_{calc} > f_{\alpha, k,n-k} \}$ y $p$- valor $P(f_{k,n-k}> F_{calc})$.
+    \item (e). Los grados de libertad del cuadrado medio debido a la hipótesis son iguales al rango de la matriz $\textbf{L}$, asociada la prueba lineal general ($\text{H}_{0}:\textbf{L}\beta = 0 \text{ vs } \text{H}_{1}: \textbf{L}\beta \neq 0$).
   \end{itemize}
 \end{enumerate}
 
@@ -108,13 +104,13 @@ table |>
 Considere a *'Overall Performance'* como la variable respuesta. *Las covariables en análisis se especifican en la tabla mostrada con anterioridad.* **Suponga que los supuestos del modelo se cumplen. De respuesta a los siguientes planteamientos:**
 
 \begin{enumerate}
-\item Determine cuál es el modelo empleado en esta situación, junto con sus supuestos, además, reporte la recta de regresión ajustada.  
+\item Determine cuál es el modelo empleado en esta situación, junto con sus supuestos, además, reporte la recta de regresión ajustada. 
+\item Determine la significancia de la regresión global. ¿Cree usted que puede realizarse esta prueba empleando otro método? De ser así, pruébelo.
 \item Determine la significancia de los parámetros individuales $\beta_{j}$, junto con intervalo de confianza. Brinde una interpretación apropiada.
-\item Determina la significancia de la regresión global. ¿Cree que puede realizarse esta prueba empleando otros métodos?
-\item Determine si el efecto de (...),
+\item Determine si el efecto de la primera covariable es el mismo que el efecto de la tercera covariable; al mismo tiempo, verifique si el correspondiente efecto de la primera covariable es el mismo que el de la segunda covariable. Plantee una prueba de hipótesis para ello y realice el procedimiento adecuado. \textbf{Reporte el modelo completo y el modelo reducido.}
 \end{enumerate}
 
-**Tarea:** Construya el valor de la estimación para la varianza $\hat{\sigma}^{2}$. (**Ayuda:** Emplee el vector anterior). 
+**Tarea:** Realice la prueba de significancia de los parámetros de forma marginal a través de sumas de cuadrados extra **(especificado en las notas de clase).** 
 
 ```{=html}
 <!--
