@@ -1,0 +1,300 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Taller Práctico Regresión Lineal Múltiple (2)"
+thanks: "El material asociado a este taller puede encontrarse en el repositorio del curso, **(https://github.com/Itsssach/Estadistica-II)**"
+author:
+- name: Estadística II
+  affiliation: Universidad Nacional de Colombia, Sede Medellín
+abstract: "Este documento corresponde al quinto taller práctico del curso de **Estadística II** para la *Universidad Nacional de Colombia*, Sede Medellín, en el periodo 2024 - 2. Se brinda una introducción al análisis de regresión. El enfoque de este taller está la comprensión del análisis de varianza y la ejecución de pruebas de hipótesis a través de la suma extra de cuadrados y el método lineal general. **Monitor:** *Santiago Carmona Hincapié.*"
+keywords: "regresión múltiple, pruebas hipótesis, ANOVA"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+#fontfamily: mathpazo
+fontsize: 12pt
+# spacing: double
+endnote: no
+language: "es"
+header-includes:
+  - \usepackage{bm}
+---
+
+```{r setup, include=FALSE}
+# -----------------------------
+if (!dir.exists("figs")) dir.create("figs")
+if (!dir.exists("_cache")) dir.create("_cache")
+# -----------------------------
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Libraries
+# -----------------------------
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
+               "exams","leaps","MASS","rsm","car","magrittr",
+               "readxl", "kableExtra")
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Read data
+# -----------------------------
+data <- read.csv("data/students_performance3.csv")
+```
+
+# Información general
+
+Con el propósito de profundizar en los conceptos del modelo de regresión lineal múltiple vistos en clase, se propone afrontar este taller en dos partes, una de teoría básica y otra práctica.
+
+**La solución para cada uno de los problemas se efectúa a partir del software estadístico R.**
+
+## Parte teórica
+
+De respuesta a las preguntas formuladas a continuación en base a la teoría tratada en clase. **Provea una interpretación de ser necesario**.
+
+\begin{enumerate}
+  \item Determine el valor de verdad de las siguientes afirmaciones.
+  \begin{itemize}
+    \item (a) Una suma de cuadrados extra mide la reducción marginal en el $\text{SSE}$ cuando una o varias variables predictoras son agregadas al modelo de regresión, dado que las otras predictoras ya fueron agregadas o están en el modelo.
+    \item (b) El estadístico $\text{T}$ correspondiente al procedimiento de prueba empleado para probar la significancia marginal del parámetro $j$ es:
+    \begin{center}
+    $\text{T}_{0} = \displaystyle \frac{\hat{\beta_{j}}-0}{\sqrt{\sigma^{2}c_{jj}}} \sim t_{n-p}$
+    \end{center}
+    Con una región de rechazo asociada de $\text{R}_{c}= \{|\text{T}_{0}| > t_{\alpha/2, n-p} \}$ y $p$- valor $P(|t_{n-p}| > |T_{0}|)$.
+    \item (c) Valores grandes de $R^{2}$ implican que la superficie ajustada de respuesta es útil; sin embargo, es menos preferido que $R^{2}_{adj}$ como medida de bondad de ajuste.
+    \item (d) El estadístico $\text{F}$ correspondiente al procedimiento de prueba empleado para probar la significancia global del modelo de regresión lineal múltiple es:
+    \begin{center}
+    $\text{F}_{0}= \displaystyle \frac{\text{SSR}/(k)}{\text{SSE}/n-k} \sim f_{k, n- k}$
+    \end{center}
+    Con una región de rechazo asociada de $\text{R}_{c}= \{\text{F}_{calc} > f_{\alpha, k,n-k} \}$ y $p$- valor $P(f_{k,n-k}> F_{calc})$.
+    \item (e). Los grados de libertad del cuadrado medio debido a la hipótesis son iguales al rango de la matriz $\textbf{L}$, asociada la prueba lineal general ($\text{H}_{0}:\textbf{L}\beta = 0 \text{ vs } \text{H}_{1}: \textbf{L}\beta \neq 0$).
+  \end{itemize}
+\end{enumerate}
+
+## Ejercicio con datos reales
+
+Considere el siguiente conjunto de datos que agrupa una serie de métricas enfocadas en evaluar el rendimiento en educación física de estudiantes en una institución. **Se incluyen únicamente las métricas cuantitativas,** cuya descripción puede encontrarse **en el siguiente enlace:** https://www.kaggle.com/datasets/ziya07/student-physical-education-performance
+
+```{r, echo=FALSE}
+table <- head(data, 5)
+table |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Información en análisis", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Considere a *'Overall Performance'* como la variable respuesta. *Las covariables en análisis se especifican en la tabla mostrada con anterioridad.* **Suponga que los supuestos del modelo se cumplen. De respuesta a los siguientes planteamientos:**
+
+\begin{enumerate}
+\item Determine cuál es el modelo empleado en esta situación, junto con sus supuestos, además, reporte la recta de regresión ajustada. 
+\item Determine la significancia de la regresión global. ¿Cree usted que puede realizarse esta prueba empleando otro método? De ser así, pruébelo.
+\item Determine la significancia de los parámetros individuales $\beta_{j}$, junto con intervalo de confianza. Brinde una interpretación apropiada.
+\item Determine si el efecto de la primera covariable es el mismo que el efecto de la tercera covariable; al mismo tiempo, verifique si el correspondiente efecto de la primera covariable es el mismo que el de la segunda covariable. Plantee una prueba de hipótesis para ello y realice el procedimiento adecuado. \textbf{Reporte el modelo completo y el modelo reducido.}
+\end{enumerate}
+
+**Tarea:** Realice la prueba de significancia de los parámetros de forma marginal a través de sumas de cuadrados extra **(especificado en las notas de clase).** 
+
+# Solución
+
+Se brinda la solución para los problemas planteados. **Puede encontrar el código en solitario en el archivo 02Solucion.R.** Puede complementar estos resultados con las notas de la sesión.
+
+## Primer punto
+
+```{r}
+# -----------------------------
+#          PRIMER PUNTO
+# -----------------------------
+datos <- read.csv(file.choose())
+# Ajustar el modelo de regresión
+modelo <- lm(Performance ~ ., data = datos)
+# Al ajustar Performance ~ ., el . indica que se desean
+# considerar la variables restantes como regresoras
+resumen_completo <- summary(modelo) # Resumen del modelo
+```
+
+```{r tabla1, echo=FALSE}
+resumen_completo$coefficients |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Resumen del modelo completo", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Puede visualizarse en la [Tabla \ref{tab:tabla1}] el resumen del modelo completo. **Puede emplearse la tabla para determinarse el modelo ajustado. Según los resultados, véase que se tiene:**
+
+\begin{center}
+$\hat{Y}_{i} = 70.8022 + 0.8846X_{i1}+ 1.8736X_{i2}+ 3.0450X_{i3}$ \\
+\textbf{Modelo de regresión ajustado}
+\end{center}
+
+Consultar las notas de la sesión para profundizar este ajuste.
+
+## Segundo punto
+
+```{r}
+# -----------------------------
+#          SEGUNDO PUNTO
+# -----------------------------
+# Determinar significancia regresión global
+anova_completo <- anova(modelo) # Comparar ambas tablas
+anova_completo2 <- model::anova_table_lm(modelo)
+# Se sugiere comparar anova_completo con anova_completo2
+# ¿Qué diferencias existen entre ambas líneas de código?
+```
+
+```{r tabla2, echo=FALSE}
+anova_completo2 |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Tabla ANOVA modelo completo", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+En la [Tabla \ref{tab:tabla2}] puede visualizarse la **Información ANOVA** del model de regresión lineal múltiple analizado. Es labor del estudiante comparar los códigos expuestos con anterioridad, esto es, *anova_completo* y *anova_completo2*. Aquí se muestra este último, que es el que interesa. **En las líneas de código que se muestran a continuación, se realiza el cálculo de la [Tabla \ref{tab:tabla2}] a mano.**
+
+```{r}
+# -----------------------------
+# También se puede realizar con otros métodos
+modelo_reducido <- lm(Performance ~ 1, data = datos)
+# Revisar las características del modelo reducido
+resumen_reducido <- summary(modelo_reducido) # Revisar ajuste modelo
+anova_reducido <- anova(modelo_reducido) # ANOVA modelo reducido
+# ¿Cómo determinar el estadístico de prueba en este caso?
+# Se debe tomar en consideración la información de los
+# modelos completo y reducido.
+# -----------------------------
+SSE_completo <- anova_completo$`Sum Sq`[4]
+# SSE_completo <- 51426.62
+SSE_reducido <- anova_reducido$`Sum Sq`[1]
+# SSE_reducido <- 2183751
+MSE <- anova_completo$`Mean Sq`[4] # MSE en general
+# MSE <- 103.6827
+# -----------------------------
+# Determinar el número de parámetros por modelo:
+parametros_completo <- length(modelo$coefficients)
+# parametros_completo <- 4
+parametros_reducido <- length(modelo_reducido$coefficients)
+# parametros_reducido <- 1
+# -----------------------------
+# Definición provista: F0 = [SSE(MR) - SSE(MF)/k]/MSE(MF)
+# donde k = gl(SSE(MR) - gl(SSE(MF))) = (n- 1)- (n- 4) = 3
+# Similarmente k = gl(SSR(MF) - gl(SSR(MR))) = 4 - 1 = 3
+# AMBOS RESULTADOS SON LOS MISMOS. A continuación se muestra:
+# -----------------------------
+k <- parametros_completo- parametros_reducido
+# k <- 3 # Dada la resta anterior
+# -----------------------------
+# # Calcular la suma parcial con el SSE
+SSE_parcial <- SSE_reducido - SSE_completo
+# SSE_parcial <- 2132324
+F0 <- (SSE_parcial/k)/MSE # Estadístico prueba
+# FO <- 6855.288
+# -----------------------------
+# CALCULAR AHORA EL VALOR P:
+p_value <- pf(F0, df1 = k, df2 = parametros_completo, lower.tail = FALSE)
+# Se rechazará H0
+# Se pueden verificar los resultados a mano con los resultados
+# dados por anova_completo2.
+```
+
+```{r tabla3, echo=FALSE}
+# -----------------------------
+#       TABLA RESULTADOS
+# -----------------------------
+verificar <- data.frame(MSE = MSE, F0 = F0, p_value = p_value)
+verificar |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Tabla hecha a mano", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Verificar los resultados obtenidos en la [Tabla \ref{tab:tabla3}] con los resultados obtenidos en la [Tabla \ref{tab:tabla2}]. **Todos son iguales, o bien, aproximados.** Si el estudiante quiere calcular los resultados a mano, lo puede hacer copiando y pegando los valores en una variable. Por ejemplo: *MSE <- 103.6827* en lugar de *MSE <- anova_completo$`Mean Sq`[4]*. Este último procedimiento corresponde a cómo se efectuaría el proceso usando una programación un poco más rigurosa.
+
+## Tercer punto
+
+```{r}
+# -----------------------------
+#          TERCER PUNTO
+# -----------------------------
+intervalos <- confint(modelo, level = 0.95) # Intervalos confianza
+```
+
+```{r tabla4, echo=FALSE}
+intervalos |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Intervalos confianza", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+La [Tabla \ref{tab:tabla4}] muestra los intervalos de confianza hallados para cada uno de los parámetros del modelo de regresión. **Intente brindar una interpretación apropiada.**
+
+## Cuarto punto
+
+```{r}
+# -----------------------------
+#          CUARTO PUNTO
+# -----------------------------
+# Ajustar para modelo reducido
+X13 <- datos$Strength + datos$Speed # Nueva variable
+modelo_reducido2 <- lm(Performance ~ X13, data = datos) # Ajustar
+# -----------------------------
+# Analizar de una forma más sencilla
+comparar_modelos <- anova(modelo_reducido2, modelo)
+```
+
+```{r tabla5, echo=FALSE}
+comparar_modelos |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Resultados comparación modelos", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Analizar los resultados especificados en la [Tabla \ref{tab:tabla5}], que corresponde a la validación de la siguiente prueba de hipótesis:
+
+$$
+\begin{cases}
+\text{H}_{0}: \beta_{1} - \beta_{3} = 0, \beta_2 = 0 \\
+\text{H}_{1}: \text{Algún } \beta_{j} \neq 0
+\end{cases}
+$$
+**Complementar con las notas de la sesión para entender los resultados con mayor profundidad.**
+
+
+```{=html}
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->
+```

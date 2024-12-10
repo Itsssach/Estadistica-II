@@ -51,10 +51,7 @@ pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
 # -----------------------------
 #           Read data
 # -----------------------------
-data <- read.csv("data/students_performance.csv")|> 
-  dplyr::select(Overall_PE_Performance_Score, Strength_Score, 
-                Skills_Score, Speed_Agility_Score)
-colnames(data) <- c("Performance", "Strength", "Skills", "Speed")
+data <- read.csv("data/students_performance3.csv")
 ```
 
 # Información general
