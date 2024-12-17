@@ -65,10 +65,19 @@ intervalos <- confint(modelo, level = 0.95) # Intervalos confianza
 # -----------------------------
 #          CUARTO PUNTO
 # -----------------------------
-# Ajustar para modelo reducido
-X13 <- datos$Strength + datos$Speed # Nueva variable
-modelo_reducido2 <- lm(Performance ~ X13, data = datos) # Ajustar
-# -----------------------------
-# Analizar de una forma más sencilla
-comparar_modelos <- anova(modelo_reducido2, modelo)
-comparar_modelos
+Y <- datos$Performance;
+X1 <- datos$Strength; X2 <- datos$Skills; X3 <- datos$Speed;
+X123 <- X1 + X2 + X3
+
+modelo <- lm(Y ~ X1 + X2 + X3)
+modelo_reducido2 <- lm(Y ~ X123)
+
+anova(modelo, modelo_reducido2)
+
+
+
+
+
+
+
+
