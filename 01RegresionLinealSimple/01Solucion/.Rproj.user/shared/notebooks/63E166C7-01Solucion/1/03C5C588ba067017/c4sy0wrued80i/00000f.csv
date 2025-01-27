@@ -1,7 +1,0 @@
-"0","# -----------------------------"
-"0","#           Libraries"
-"0","# -----------------------------"
-"0","if(!require(pacman)){install.packages(""pacman""); library(pacman)}"
-"0","pacman::p_load(""tidyverse"", ""knitr"", ""leaps"",""tidyr"","
-"0","               ""exams"",""leaps"",""MASS"",""rsm"",""car"",""magrittr"",""readxl"", "
-"0","               ""kableExtra"", ""ggthemes"", ""GGally"", ""corrplot"")"
