@@ -36,7 +36,19 @@ car::vif(modelo2) # Criterio VIF
 olsrr::ols_coll_diag(modelo2) # Análisis general
 # Notar que se pierde potencia con este procedimiento
 # -----------------------------
+# También se puede solucionar con las funciones del curso
+source("funciones.R") # Establecer fuente
+library(leaps) # Para usar las funciones curso
+library(perturb) # Para usar las funciones curso
+# -----------------------------
+myCollinDiag(modelo)
+# -----------------------------
 #          TERCER PUNTO
 # -----------------------------
+myAllRegTable(modelo) # Función curso
+# También se obtienen gráficas
+myCp_criterion(modelo) # Gráfica CP
+myR2_criterion(modelo) # Gráfica R2
+myAdj_R2_criterion(modelo) # Gráfico R2 adj
 modelos <- olsrr::ols_step_all_possible(modelo)
 plot(modelos) # Visualización
