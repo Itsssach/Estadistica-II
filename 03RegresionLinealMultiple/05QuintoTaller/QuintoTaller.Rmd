@@ -54,8 +54,11 @@ pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
 library(randomForest)
 data("imports85")
 data <- imports85 |> 
-  dplyr::select(price, bodyStyle, bore) |> 
+  dplyr::select(price, bodyStyle, bore) |>
+  dplyr::filter(bodyStyle != "hardtop", 
+                bodyStyle != "convertible") |> 
   stats::na.omit() # Delete NA
+write.csv(data, "data/datos.csv", row.names = FALSE)
 ```
 
 # Información general
@@ -96,7 +99,7 @@ table |>
 Considere a *'Price'* como la variable respuesta. *Las covariables en análisis se especifican en la tabla mostrada con anterioridad.* **Suponga que los supuestos del modelo se cumplen. De respuesta a los siguientes planteamientos:**
 
 \begin{enumerate}
-\item Use el método de selección \textit{'Forward'} para determinar el mejor modelo (paso por paso) y compárelo con el resultado dado por el método \textit{'Backward'} y \textit{'Stepwise'}. \textbf{Emplee el conjunto de datos del taller anterior.}
+\item Use el método de selección \textit{'Backward'} para determinar el mejor modelo (paso por paso) y compárelo con el resultado dado por el método \textit{'Forward'} y \textit{'Stepwise'}. \textbf{Emplee el conjunto de datos del trabajo.}
 \item Considere el modelo de regresión lineal dado por la interacción $Y_{i} = \beta_{0}+ \beta_{1}X_{i1}+ \beta_{2}I_{i1}+ \beta_{3}I_{i2} + \beta_{11}X_{i1}I_{i1}+ \beta_{12}X_{i1}I_{i2} + \varepsilon_{i}; \varepsilon_{i} \overset{iid}{\sim} N(0, \sigma^{2})$, empleado para evaluar el cambio de precio en automóviles en función de \textit{'Bore'} (numérica) y \textit{'BodyStyle'} (categórica), esta última con tres categorías \textit{'Sedan', 'Otros' y 'Hatchback'}. \textbf{Se toma como referencia la categoría 'Hatchback'. Responda:}
   \begin{itemize}
   \item (a) Caracterize la información en análisis, reportando la ecuación de las rectas en función de los diferentes niveles, así como las rectas ajustadas.
