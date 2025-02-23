@@ -70,7 +70,7 @@ I_HOGAR <- runif(81961, min = min_ingreso, max = max_ingreso)
 # -----------------------------
 datos <- datos |> # Para añadir la variable
   dplyr::mutate(I_HOGAR = I_HOGAR)
-#datos |> write.csv("data/datos.csv")
+datos |> write.csv("data/datos.csv")
 ```
 
 # Información general
