@@ -134,7 +134,10 @@ N <- nrow(datos);
 p_i <- c(p_hat1, p_hat2, p_hat3)
 # -----------------------
 n <- sum((N_i^2 * p_i * (1- p_i))/psi_i)/((N^2 * D) + sum(N_i * p_i * (1- p_i)))
-n_redon <- ceiling(n)
+n_1 <- ceiling(psi_i[1] * n)
+n_2 <- ceiling(psi_i[2] * n)
+n_3 <- ceiling(psi_i[3] * n)
+n_redond <- n_1 + n_2 + n_3
 
 
 
