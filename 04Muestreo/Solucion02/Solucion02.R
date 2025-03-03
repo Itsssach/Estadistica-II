@@ -39,7 +39,12 @@ N_i <- c(N_1, N_2, N_3)
 psi_i <- N_i/N
 # -----------------------
 n <- 8000;
-n_i <- ceiling(psi_i * n)
+n_i <- psi_i * n # Sin redondear
+n_i <- floor(n_i) # Redondeando al piso
+# El verdadero valor de los n_i:
+n_1 <- 3836; n_2 <- 3822; n_3 <- 342
+# Por error, se tiene en el vídeo:
+# Con estos se hacen los cálculos
 n_1 <- 325; n_2 <- 324; n_3 <- 29
 # -----------------------
 # Afijación de Neymann
