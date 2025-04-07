@@ -1,0 +1,120 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Taller Práctico Regresión Lineal Múltiple (1)"
+thanks: "El material asociado a este taller puede encontrarse en el repositorio del curso, **(https://github.com/Itsssach/Estadistica-II)**"
+author:
+- name: Estadística II
+  affiliation: Universidad Nacional de Colombia, Sede Medellín
+abstract: "Este documento corresponde al primer taller práctico del curso de **Estadística II** para la *Universidad Nacional de Colombia*, Sede Medellín, en el periodo 2025 - 1. Se brinda una introducción al análisis de regresión. El enfoque de este taller está la comprensión del modelo de regresión lineal múltiple a nivel matricial. **Monitor:** *Santiago Carmona Hincapié.*"
+keywords: "regresión múltiple"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+#fontfamily: mathpazo
+fontsize: 12pt
+# spacing: double
+endnote: no
+language: "es"
+header-includes:
+  - \usepackage{bm}
+---
+
+```{r setup, include=FALSE}
+# -----------------------------
+if (!dir.exists("figs")) dir.create("figs")
+if (!dir.exists("_cache")) dir.create("_cache")
+# -----------------------------
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Libraries
+# -----------------------------
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
+               "exams","leaps","MASS","rsm","car","magrittr",
+               "readxl", "kableExtra")
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Read data
+# -----------------------------
+data <- read.csv("data/students_performance.csv")|> 
+  dplyr::select(Overall_PE_Performance_Score, Strength_Score, 
+                Skills_Score, Speed_Agility_Score)
+colnames(data) <- c("Performance", "Strength", "Skills", "Speed")
+```
+
+# Información general
+
+Con el propósito de profundizar en los conceptos del modelo de regresión lineal múltiple vistos en clase, se propone afrontar este taller en dos partes, una de teoría básica y otra práctica.
+
+**La solución para cada uno de los problemas se efectúa a partir del software estadístico R.**
+
+## Parte teórica
+
+De respuesta a las preguntas formuladas a continuación en base a la teoría tratada en clase. **Provea una interpretación de ser necesario**.
+
+\begin{enumerate}
+  \item Considere el siguiente modelo de regresión lineal múltiple con $k$ variables regresoras, $p = (k+1)$ parámetros asociados $Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2} + ... + \beta_{k}X_{ik} + \varepsilon_{i}, \varepsilon_{i} \overset{iid}{\sim} N(0, \sigma^{2})$. 
+  \begin{itemize}
+    \item (a) Escriba el modelo de forma matricial junto con sus supuestos. \textbf{Especifique las dimensiones de cada componente}.
+    \item (b) Demuestre que el estimador $\bm{\hat{\beta}}$ que se obtiene a través del método de mínimos cuadrados es un estimador insesgado para $\bm{\beta}$. Analice $\bm{\hat{\beta}}$.  
+  \end{itemize}
+  \item Determine el valor de verdad de las siguientes afirmaciones.
+  \begin{itemize}
+    \item (a) Los modelos de regresión múltiple $(1). \text{Y}_{i}= \beta_{0} + \sum_{j = 1}^{k} \beta_{j} (X_{ij})^{1/2} + \varepsilon_{i}; (2). \text{ln}(\text{Y}_{i})= \beta_{0}+ \sum_{j = 1}^{k}\beta_{j} \text{ln}(X_{ij}) + \varepsilon_{i}; \varepsilon_{i} \overset{iid}{\sim} N(0, \sigma^{2})$ no son modelos lineales, puesto que se altera la forma de la superficie de respuesta.
+    \item (b) Bajo los supuestos del modelo de regresión lineal múltiple, $\varepsilon_{i} \overset{iid}{\sim} N(0, \sigma^{2})$, el estimador para los parámetros $\bm{\hat{\beta}}$ obtenido a través del método de mínimos cuadrados ordinarios es el mismo que el de máxima verosimilitud, así como para la varianza $\hat{\sigma}^{2}$. \textbf{Explique}.
+    \item (c) Se requiere que la matriz $\mathbf{(X^{t}X)}$ sea singular. Además, la matriz $\mathbf{H}$ es simétrica e idempotente, al igual que $\mathbf{(I_{n} - H)}$.
+    \item (d) La matriz de varianzas- covarianzas siempre es simétrica respecto a su diagonal principal, además, siempre tiene unos en su diagonal principal.
+    \item (e) El parámetro $\beta_{0}$, como la respuesta media de $Y$ es únicamente interpretable si el conjunto de observaciones $(X_{1}, X_{2}, ..., X_{k}) = (0, 0, ..., 0)$ está incluido en el rango experimental. 
+    \item (f) Los parámetros $\beta_{j}, j = 1, ..., k$ indican el cambio en la respuesta media de $Y$ por unidad de incremento en la respectiva variable $X_{j}$.
+  \end{itemize}
+\end{enumerate}
+
+## Ejercicio con datos reales
+
+Considere el siguiente conjunto de datos que agrupa una serie de métricas enfocadas en evaluar el rendimiento en educación física de estudiantes en una institución. **Se incluyen únicamente las métricas cuantitativas,** cuya descripción puede encontrarse **en el siguiente enlace:** https://www.kaggle.com/datasets/ziya07/student-physical-education-performance
+
+```{r, echo=FALSE}
+table <- head(data, 5)
+table |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Información en análisis", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Considere a *'Overall Performance'* como la variable respuesta. *Las covariables en análisis se especifican en la tabla mostrada con anterioridad.* **De respuesta a los siguientes planteamientos:**
+
+\begin{enumerate}
+\item Determine cuál es la matriz de diseño ($\mathbf{X}$) para este problema en específico. Calcule el vector de parámetros estimados $\bm{\hat{\beta}}$. Brinde una interpretación adecuada.
+\item Calcule la estimación de la respuesta media $\bm{\hat{y}}$.
+\item Calcule el vector de los errores estimados $\bm{\hat{\varepsilon}}$.
+\item Construya el valor de la estimación para la varianza $\hat{\sigma}^{2}$.
+\end{enumerate}
+
+```{=html}
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->
+```
