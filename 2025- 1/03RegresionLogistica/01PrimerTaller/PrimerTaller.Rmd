@@ -1,0 +1,111 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Taller Práctico Regresión Logística (1)"
+thanks: "El material asociado a este taller puede encontrarse en el repositorio del curso, **(https://github.com/Itsssach/Estadistica-II)**"
+author:
+- name: Estadística II
+  affiliation: Universidad Nacional de Colombia, Sede Medellín
+abstract: "Este documento corresponde al sexto taller práctico del curso de **Estadística II** para la *Universidad Nacional de Colombia*, Sede Medellín, en el periodo 2025 - 1. Se brinda una introducción al análisis de regresión. El enfoque de este taller está la comprensión del modelo de regresión lineal logístico como método de clasificación, empleando variables continuas y categóricas. **Monitor:** *Santiago Carmona Hincapié.*"
+keywords: "regresión múltiple, secuencialidad, interacción"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+#fontfamily: mathpazo
+fontsize: 12pt
+# spacing: double
+endnote: no
+language: "es"
+header-includes:
+  - \usepackage{bm}
+---
+
+```{r setup, include=FALSE}
+# -----------------------------
+if (!dir.exists("figs")) dir.create("figs")
+if (!dir.exists("_cache")) dir.create("_cache")
+# -----------------------------
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Libraries
+# -----------------------------
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
+               "exams","leaps","MASS","rsm","car","magrittr",
+               "readxl", "kableExtra")
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Read data
+# -----------------------------
+data <- read.csv("data/personality_dataset.csv")
+```
+
+# Información general
+
+Con el propósito de profundizar en los conceptos del modelo de regresión logística vistos en clase, se propone afrontar este taller en dos partes, una de teoría básica y otra práctica.
+
+**La solución para cada uno de los problemas se efectúa a partir del software estadístico R.**
+
+## Parte teórica
+
+De respuesta a las preguntas formuladas a continuación en base a la teoría tratada en clase. **Provea una interpretación de ser necesario**.
+
+\begin{enumerate}
+  \item Determine el valor de verdad de las siguientes afirmaciones.
+  \begin{itemize}
+    \item (a) En un modelo de regresión logística, la variable respuesta es de naturaleza binaria, tal que $\text{Y}_{i} \sim \text{ Ber}(\theta_{i})$; donde $\theta$ es la probabilidad de éxito en el $i$- ésimo ensayo.
+    \item (b) Los coeficientes $\underline{\beta}$ de un modelo de regresión logística se estiman numéricamente el método de mínimos cuadrados ordinarios, ya que la función de verosimilitud es no- lineal.
+    \item (c) Al incluir variables categóricas al modelo, es necesario definir una categoría de referencia, y la interpretación de tales coeficientes se realiza en comparación con tal referencia.
+    \item (d) El valor $\text{exp}(\beta_{j})$ se interpreta como el cambio en el logaritmo de los \textit{'odds'} por cada incremento unitario en la variable predictora $X_{j}$.
+    \item (e) El estadístico de prueba $\chi_{c} = D_{0}^{2}- D^{2}$, con una región de rechazo asociada $\text{R}_{c}= \{\chi_{c} > \chi_{p, \alpha} \}$ se emplea para probar la significancia global del modelo, mientras que se prefiere la prueba \textit{t- student} para la significancia individual.
+  \end{itemize}
+\end{enumerate}
+
+## Ejercicio con datos reales
+
+Considere el siguiente conjunto de datos que agrupa una serie de características enfocadas en *clasificar* la personalidad de múltiples individuos. **Se incluyen variables cuantitativas y cualitativas.** La información puede profundizarse en: https://www.kaggle.com/datasets/rakeshkapilavai/extrovert-vs-introvert-behavior-data
+
+```{r, echo=FALSE}
+table <- head(data, 5)[c(8, 1:4)]
+table |> 
+  knitr::kable(booktabs= TRUE, 
+  caption= "Información en análisis", 
+               align= "c") |> # Kable Table
+  kableExtra::kable_styling(full_width= FALSE, latex_options= 
+                              "HOLD_position", font_size= 10) |> 
+  kableExtra::column_spec(1, bold = TRUE) # Boldness
+```
+
+Considere a *'Personality'* como la variable respuesta. *Algunas de las covariables en análisis se especifican en la tabla mostrada con anterioridad.* **De respuesta a los siguientes planteamientos:**
+
+\begin{enumerate}
+\item Ajuste un modelo de regresión logístico. Analice los componentes $\theta_{i}, g(\theta_{i}), \psi(\underline{\mathbf{x}}_{i})$. ¿Por qué se emplea la función \textit{'logit'} como función de enlace?
+\item Realice una prueba de significancia general del modelo de regresión logístico propuesto. Interprete los resultados obtenidos.
+\item Realice una prueba de significancia de los parámetros individuales. Provea una \textit{interpretación directa} de los parámetros del modelo de regresión logística, así como una \textit{interpretación en términos de la razón de probabilidades}.
+\item Realice una predicción de futuras observaciones. Utilice las probabilidades obtenidas para la construcción un clasificador logístico con etiquetas.
+\end{enumerate}
+
+```{=html}
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->
+```
