@@ -11,7 +11,7 @@ El taller del martes es el mismo que el taller del sábado, es así que pueden e
 
 **(2). Conocimientos previos:** Estadística I, en particular, pruebas de hipótesis e intervalos de confianza (muy importantes). Es deseable también conocimientos básicos de programación en R. Se recomienda RStudio como IDE. Una guía simple de instalación es la siguiente: https://www.youtube.com/watch?v=hbgzW3Cvda4
 
-**(3). Medios de comunicación:** El único medio de comunicación por el que estoy autorizado por las directivas para resolver alguna inquietud es este mismo medio (scarmonah@unal.edu.co). (No habrá entonces grupo de WhatsApp oficial del curso). 
+**(3). Medios de comunicación:** (scarmonah@unal.edu.co y Whatsapp)
 
 **(4). Grabaciones:** Estarán hospedadas en Google- Drive. 
 
