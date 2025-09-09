@@ -1,0 +1,127 @@
+---
+output: 
+  stevetemplates::article:
+    fig_caption: true
+#bibliography: master.bib
+biblio-style: apsr
+title: "Taller Práctico Regresión Lineal Simple (1)"
+thanks: "El material asociado a este taller puede encontrarse en el repositorio del curso, **(https://github.com/Itsssach/Estadistica-II)**"
+author:
+- name: Estadística II
+  affiliation: Universidad Nacional de Colombia, Sede Medellín
+abstract: "Este documento corresponde al primer taller práctico del curso de **Estadística II** para la *Universidad Nacional de Colombia*, Sede Medellín, en el periodo 2025 - 2. Se brinda una introducción al análisis de regresión. El enfoque de este taller está sobre las componentes asociadas al modelo de regresión lineal simple -especialmente los parámetros-. **Monitor:** *Santiago Carmona Hincapié.*"
+keywords: "regresión, parámetros"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+#fontfamily: mathpazo
+fontsize: 12pt
+# spacing: double
+endnote: no
+language: "es"
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r setup, include=FALSE}
+# -----------------------------
+if (!dir.exists("figs")) dir.create("figs")
+if (!dir.exists("_cache")) dir.create("_cache")
+# -----------------------------
+knitr::opts_chunk$set(cache=TRUE,
+                      message=FALSE, warning=FALSE,
+                      fig.path='figs/',
+                      cache.path = '_cache/',
+                      fig.process = function(x) {
+                      x2 = sub('-\\d+([.][a-z]+)$', '\\1', x)
+                      if (file.rename(x, x2)) x2 else x
+                      })
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Libraries
+# -----------------------------
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+pacman::p_load("tidyverse", "knitr", "leaps","tidyr",
+               "exams","leaps","MASS","rsm","car","magrittr","readxl", 
+               "kableExtra")
+```
+
+```{r, echo=FALSE}
+# -----------------------------
+#           Read data
+# -----------------------------
+data <- read.csv("data/FreedomIndex.csv") |> 
+  tidyr::drop_na() |> 
+  dplyr::select(3:15) |> 
+  dplyr::rename(OS = Overall.Score, PR = Property.Rights, 
+                GI = Government.Integrity, JE = Judicial.Effectiveness, 
+                TB = Tax.Burden, GS = Government.Spending, 
+                FH = Fiscal.Health, BF = Business.Freedom, 
+                LF = Labor.Freedom, MF = Monetary.Freedom, 
+                TF = Trade.Freedom, IF = Investment.Freedom, 
+                FF = Financial.Freedom)
+# -----------------------------
+old_names <- data.frame(old = c("Overall.Score", "Property.Rights", "Government.Integrity", "Judicial.Effectiveness", "Tax.Burden", "Government.Spending", "Fiscal.Health", "Business.Freedom", "Labor.Freedom", "Monetary.Freedom", "Trade.Freedom", "Investment.Freedom", "Financial.Freedom"), new = c("OS", "PR", "GI", "JE", "TB", "GS", "FH", "BF", "LF", "MF", "TF", "IF", "FF"))
+
+```
+
+# Información general
+
+Con el propósito de profundizar en los conceptos del modelo de regresión lineal simple vistos en clase, se propone afrontar dos problemas prácticos. El primero consta de una simulación que ahonda en las propiedades de los parámetros del modelo de regresión. El segundo, es una aproximación al uso del modelo en situaciones de la vida real.
+
+**La solución para cada uno de los problemas se efectúa a partir del software estadístico R.**
+
+## Ejercicio con datos reales
+
+El índice de libertad económica es una medida que *evalúa el grado de libertad económica* en diferentes países. Se presentan diversos atributos, cuya descripción puede encontrarse **en el siguiente enlace:** https://www.kaggle.com/datasets/mlippo/freedom-economic-index/data
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rccccccccccccc}
+\toprule
+OS & PR & GI & JE & TB & GS & FH & BF & LF & MF & TF & IF & FF \\
+\midrule
+1 & 83.5 & 94.2 & 88.3 & 58.3 & 90.7 & 89.2 & 76.0 & 86.9 & 77.3 & 76.3 & 95.0 & 90 & 80 \\
+2 & 83.0 & 94.2 & 91.3 & 98.1 & 70.4 & 64.6 & 95.7 & 89.3 & 60.7 & 80.8 & 86.4 & 85 & 80 \\
+3 & 82.6 & 93.5 & 83.4 & 94.3 & 78.0 & 82.4 & 91.7 & 91.3 & 62.8 & 74.5 & 79.2 & 90 & 70 \\
+4 & 80.0 & 82.2 & 73.4 & 94.0 & 79.2 & 90.5 & 90.3 & 84.9 & 69.1 & 80.1 & 86.4 & 70 & 60 \\
+5 & 79.2 & 96.9 & 84.9 & 95.8 & 64.6 & 40.6 & 97.6 & 89.5 & 57.7 & 69.1 & 79.2 & 95 & 80 \\
+6 & 77.8 & 98.6 & 97.4 & 89.6 & 41.8 & 26.8 & 98.2 & 92.7 & 64.9 & 74.3 & 79.2 & 90 & 80 \\
+\bottomrule
+\end{tabular}
+\caption{Información en análisis}
+\end{table}
+
+Considere a *'Overall Score'* como la variable respuesta. *Escoja una covariable y de respuesta a los siguientes planteamientos:*
+
+```{=tex}
+\begin{enumerate}
+\item Realice un \textbf{breve análisis descriptivo}. ¿Un modelo de regresión lineal simple podría ser adecuado en este caso? ¿Por qué?
+\item Escriba la ecuación del modelo de regresión lineal, considerando los supuestos asociados. Obtenga los valores calculados de los parámetros, $\overline{y}, \hat{y}, \hat{\varepsilon_{i}}$ y analícelos.
+\item Determine si los parámetros del modelo $\beta_{0}, \beta_{1}$ son significativos, considerando un nivel de significancia del $5 \%$. Realice una interpretación en relación al problema. \textbf{¿Estos parámetros tienen sentido?}
+\item Calcule un intervalo de confianza del $95 \%$ para ambos parámetros. ¿Puede concluir a partir de este resultado si los parámetros son significativos?
+\end{enumerate}
+```
+
+## Ejercicio de simulación
+
+A partir de una simulación se pretende ilustrar algunos de los principios teóricos que comprenden el análisis de regresión lineal simple. Así, se plantea un modelo $Y_{i} = \beta_{0} + \beta_{1}X_{1i} + \varepsilon_{i}, \varepsilon_{i} \overset{\text{iid}}{\sim} N(0, \sigma^{2})$, tal que $\beta_{0} = 50, \beta_{1} = 10, \sigma^{2} = 16$. Suponga que se emplean $n = 20$ observaciones para ajustar el modelo. **Genere** $\mathbf{500}$ **muestras de** $\mathbf{20}$ **observaciones de tal manera que** $x = 1, 1.5, 2, ..., 10$ **para cada muestra.**
+
+```{=tex}
+\begin{enumerate}
+\item Para cada muestra calcule $\hat{\beta_{0}}, \hat{\beta_{1}}$. Construya un histograma para cada parámetro estimado y concluya.
+\item Para cada muestra, calcule un intervalo de confianza del $90\%$ para $\beta_{1}$. \textit{¿Cuántos de estos intervalos contienen al verdadero valor del parámetro? ¿Se corresponde la simulación con la teoría?}  
+\end{enumerate}
+```
+
+```{=html}
+<!--
+# References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\vspace*{-0.2in}
+\noindent
+-->
+```
