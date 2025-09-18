@@ -1,0 +1,81 @@
+---
+title: "Untitled"
+author: "Santiago Carmona Hincapié"
+date: "2025-09-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Repaso estadística II
+
+Una empresa de logística nacional busca optimizar sus procesos internos de procesamiento de pedidos. Para cada pedido, se mide el **tiempo de procesamiento** (en horas), que incluye desde la recepción del pedido hasta que está listo para despacho. La gerencia está interesada en comprender cómo se relaciona este tiempo con el **costo total** por pedido (en miles de pesos), que refleja gastos de personal, energía y recursos operativos.
+
+El equipo de analítica recolectó información de **1.000 pedidos** en diferentes momentos y condiciones. Los tiempos de procesamiento se distribuyen en el rango de **1 a 12 horas**, y para cada nivel de tiempo se registraron dos observaciones (réplicas), con el fin de poder aplicar pruebas de ajuste.
+
+```{r}
+library(model)
+set.seed(123)
+niveles <- seq(1, 12, length.out = 500)
+tiempo2 <- rep(niveles, each = 2)
+
+costo2 <- 800 + 25*tiempo2 - 1.5*(tiempo2^2) + rnorm(length(tiempo2), 0, 20)
+
+model2 <- lm(costo2 ~ tiempo2)
+```
+
+```{r}
+plot(model2, 1)  # aquí verás la U en los residuales
+```
+
+```{r}
+plot(tiempo2, costo2, xlab="Tiempo de procesamiento", ylab="Costo por pedido", main="Costo vs Tiempo")
+abline(model2, col="blue", lwd=2)
+```
+
+```{r}
+summary(model2)
+```
+
+```{r}
+anova(model2)
+```
+
+```{r}
+qqnorm(resid(model2))
+qqline(resid(model2), col = "red")
+```
+
+```{r}
+shapiro.test(residuals(model2))
+```
+
+```{r}
+confint(model2)
+```
+
+```{r}
+summary(tiempo2)
+```
+
+```{r}
+predict(model2, newdata = data.frame(tiempo2 = 7), 
+        interval = "confidence", 
+        level = 0.95)
+predict(model2, newdata = data.frame(tiempo2 = 7), 
+        interval = "prediction", 
+        level = 0.95)
+```
+
+
+```{r}
+lack_fit_test(model2) # Falta de ajuste
+```
+
+
+
+
+
+
